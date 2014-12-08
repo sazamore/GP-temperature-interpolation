@@ -75,12 +75,14 @@ coeff = np.concatenate(coeff,coeff2, axis=0)
 y_fit = hist_fit + hist_fit2
 
 #plot to check fit
+#TODO: move to end; plot after calculations are out of the way
 plt.plot(x_observed,y_observed_mean,'ro',label='Test data'), plt.plot(x_observed,hist_fit,label='Fitted data')
 
 #prediction locations
 #x_predicted = np.atleast_2d(np.random.rand(100))*coeff(1)   #random data, around mean
 x_predicted = np.atleast_2d(np.linspace(0,254,50))       #1 mm prediction sites
-x_observed = np.atleast_2d(x_observed)    #make 2d for gaussian process fit
+x_observed = np.atleast_2d(x_observed)    #make 2d for gaussian process fit. TODO: figure out what atleast_2d does
+
 y_observed = np.atleast_2d(y_observed)    #make 2d for gaussian process fit
 y_observed_adjusted = np.atleast_2d(y_observed_adjusted)
 y_fit = np.atleast_2d(y_fit)
@@ -95,6 +97,6 @@ gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',theta0=1./25
 gp.fit(x_observed.T, y_fit.T)
 
 #y = gaus(x_observed,*coeff)     #single gaussian expected y values
-y = gaus2(x_observed,*coeff)     #double gaussian expected y values
-y_pred, MSE = gp.predict(x_predicted.T,eval_MSE=True)   #produce predicted y values
+y_expected_interpolated = gaus2(x_observed,*coeff)     #double gaussian expected y values
+y_predictions, y_predictions_MeanSqErr = gp.predict(x_predicted.T,eval_MSE=True)   #produce predicted y values
 
