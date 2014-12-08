@@ -7,7 +7,7 @@ measurements and interpolates temparture values (relative, not absolute) at a
 
 Created on Mon Dec 01 11:51:44 2014
 
-@author: Sharri
+@authors: Sharri and Richard
 """
 
 from scipy.optimize import curve_fit
@@ -42,15 +42,21 @@ mean_y_obs = np.mean(y_obs,0)-np.min(np.mean(y_obs,0))     #subtract offset, imp
 #h2 = np.float(np.sum(h,0))  
 #dist = h/h2   #convert histogram to probability
 
-#gaussian function, for fitting to distribution
 def gaus(x, *p):
+    """"gaussian function, for fitting to distribution
+    """
     A,mu,sigma = p
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))
     
-#2nd gaussian
+
 def gaus2(x,*p):
+    """add two gaussians
+    """
     A1,mu1,sigma1,A2,mu2,sigma2 = p
     return A1*np.exp(-(x-mu1)**2/(2.*sigma1**2))+A2*np.exp(-(x-mu2)**2/(2.*sigma2**2))
+    
+def gaus2_better(x,p1,p2):
+    return gaus(x,p1) + gaus(x,p2)
     
 #fit gaussian to distribution
 p0 = [1,90,15]   #start guess for fitting
@@ -79,9 +85,9 @@ y_obs = np.atleast_2d(y_obs)    #make 2d for gaussian process fit
 y_obs_adjusted = np.atleast_2d(y_obs_adjusted)
 y_fit = np.atleast_2d(y_fit)
    
-##make section into separate function
+##TODO: make section into separate function
    
-#set up gaussian process function, with MSE start point (minimum and maximum can be added)
+#TODO: set up gaussian process function, with MSE start point (minimum and maximum can be added)
 gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',theta0=1./25, thetaL=None,thetaU = None)
                                       #thetaL=none,
                                       #thetaU=none)
