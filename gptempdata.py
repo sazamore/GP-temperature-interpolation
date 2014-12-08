@@ -18,25 +18,25 @@ import scipy.io as io
 
 data = io.loadmat('C:\Users\Sharri\Documents\MATLAB\Temp stuff\lhstore2.mat')   #open data file (.mat)
 
-adjusted_temp = data['store2']    #pull out tempearture data 
+temperature_adjusted = data['store2']    #pull out tempearture data 
 
 data = io.loadmat('C:\Users\Sharri\Documents\MATLAB\Temp stuff\lhdata.mat')
 
 pos_mm = data['p_mm']   #pull out positional data
-mean_T = data['s']      #time averaged temperature data
+temperature_mean = data['s']      #time averaged temperature data
 
-x_obs = pos_mm[:15,0]           #x (crosswind) axis, observed data
+x_observed = pos_mm[:15,0]           #x (crosswind) axis, observed data
 
-y_obs = np.zeros([9,15])        #preallocate matrix
+y_observed = np.zeros([9,15])        #preallocate matrix. TODO: check if this line is necessary
 
 for i in range(1,10):
-    y_obs[i-1,:] = mean_T[1,i*15-15:i*15]   #get corresponding crosswind slice temperatures
+    y_observed[i-1,:] = temperature_mean[1,i*15-15:i*15]   #get corresponding crosswind slice temperatures
 
-mean_y_obs = np.mean(y_obs,0)-np.min(np.mean(y_obs,0))     #subtract offset, improves fit
+y_observed_mean = np.mean(y_observed, 0) - np.min(np.mean(y_observed,0))     #subtract offset, improves fit
 
 #get distribution of temperatures from samples
 #bins = np.linspace(15, 30, 100) #histogram bins
-#h,b = np.historgram(adjusted_temp, bins)
+#h,b = np.historgram(temperature_adjusted, bins)
 #centers = (b[:-1]+b[1,:])/2
 #
 #h2 = np.float(np.sum(h,0))  
@@ -46,7 +46,7 @@ def gaus(x, *p):
     """"gaussian function, for fitting to distribution
     """
     A,mu,sigma = p
-    return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+    return A * np.exp(-(x-mu) ** 2 / (2. * sigma ** 2))
     
 
 def gaus2(x,*p):
@@ -59,30 +59,30 @@ def gaus2_better(x,p1,p2):
     return gaus(x,p1) + gaus(x,p2)
     
 #fit gaussian to distribution
-p0 = [1,90,15]   #start guess for fitting
-coeff, cov = curve_fit(gaus, x_obs,mean_y_obs, p0=p0) #inputs can be: gaus,centers, dist,p0, if using temperature distribution data
-hist_fit = gaus(x_obs,*coeff)
+position_guess = [1,90,15]   #start guess for fitting
+coeff, cov = curve_fit(gaus, x_observed, y_observed_mean, position_guess = position_guess) #inputs can be: gaus,centers, dist,position_guess, if using temperature distribution data
+hist_fit = gaus(x_observed,*coeff)
 
-y_obs_adjusted = mean_y_obs-hist_fit    #subtract out first gaussian, to fit second (if necessary)
+y_observed_adjusted = y_observed_mean - hist_fit    #subtract out first gaussian, to fit second (if necessary)
 
 #fit second gaussian, if necessary 
-p0 = [0.12,40,5]
-coeff2,cov2 = curve_fit(gaus,x_obs, np.abs(y_obs_adjusted),p0=p0)   #not sure how I feel about abs val..
-hist_fit2 = gaus(x_obs,*coeff2)
+position_guess = [0.12,40,5]
+coeff2, cov2 = curve_fit(gaus,x_observed, np.abs(y_observed_adjusted), position_guess = position_guess)   #not sure how I feel about abs val..
+hist_fit2 = gaus(x_observed,*coeff2)
 
 #create final coefficients and fits
-coeff = np.concatenate(coeff,coeff2,axis=0)
+coeff = np.concatenate(coeff,coeff2, axis=0)
 y_fit = hist_fit + hist_fit2
 
 #plot to check fit
-plt.plot(x_obs,mean_y_obs,'ro',label='Test data'), plt.plot(x_obs,hist_fit,label='Fitted data')
+plt.plot(x_observed,y_observed_mean,'ro',label='Test data'), plt.plot(x_observed,hist_fit,label='Fitted data')
 
 #prediction locations
-#X_pred = np.atleast_2d(np.random.rand(100))*coeff(1)   #random data, around mean
-X_pred = np.atleast_2d(np.linspace(0,254,50))       #1 mm prediction sites
-x_obs = np.atleast_2d(x_obs)    #make 2d for gaussian process fit
-y_obs = np.atleast_2d(y_obs)    #make 2d for gaussian process fit
-y_obs_adjusted = np.atleast_2d(y_obs_adjusted)
+#x_predicted = np.atleast_2d(np.random.rand(100))*coeff(1)   #random data, around mean
+x_predicted = np.atleast_2d(np.linspace(0,254,50))       #1 mm prediction sites
+x_observed = np.atleast_2d(x_observed)    #make 2d for gaussian process fit
+y_observed = np.atleast_2d(y_observed)    #make 2d for gaussian process fit
+y_observed_adjusted = np.atleast_2d(y_observed_adjusted)
 y_fit = np.atleast_2d(y_fit)
    
 ##TODO: make section into separate function
@@ -92,9 +92,9 @@ gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',theta0=1./25
                                       #thetaL=none,
                                       #thetaU=none)
                                      # random_start = 100)
-gp.fit(x_obs.T,y_fit.T)
+gp.fit(x_observed.T, y_fit.T)
 
-#y = gaus(x_obs,*coeff)     #single gaussian expected y values
-y = gaus2(x_obs,*coeff)     #double gaussian expected y values
-y_pred, MSE = gp.predict(X_pred.T,eval_MSE=True)   #produce predicted y values
+#y = gaus(x_observed,*coeff)     #single gaussian expected y values
+y = gaus2(x_observed,*coeff)     #double gaussian expected y values
+y_pred, MSE = gp.predict(x_predicted.T,eval_MSE=True)   #produce predicted y values
 
