@@ -18,7 +18,8 @@ import scipy.io as io
 
 data = io.loadmat('C:\Users\Sharri\Dropbox\Le grand dossier du Sharri\Data\Temperature Data\lhstore2.mat')   #open data file (.mat)
 
-temperature = data['store2']    #pull out tempearture data 
+temperature = data['store2'].T    #pull out tempearture data 
+T = temperature[:210,1,:]       #subset of data to work with - one height, removed unnecessary points
 
 data = io.loadmat('C:\Users\Sharri\Dropbox\Le grand dossier du Sharri\Data\Temperature Data\final-lh50.mat')
 
@@ -27,11 +28,12 @@ time_averaged_temperature = data['s']      #time averaged temperature data
 
 x_observed = pos_mm[:15,0]           #x (crosswind) axis, observed data
 y_observed = np.unique(pos_mm[:,1])
-y_observed = y_observed[1:13];    #remove unwanted data points, grid only
+y_observed[13] = y_observed[1]      #last row repeats
 
 #IN PROGRESS: grid shape to data (x, y,temperature), to calculate std at each location
-#grid_x,grid_y= np.meshgrid(x_observed,y_observed)
-#T_reshaped =    #reshape T for easier expansion of interpolation into 1+ dimensions
+
+grid_x,grid_y= np.meshgrid(x_observed,y_observed)
+T_reshaped =  np.reshape(T,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
 
 T_observed = np.zeros([9,15])        #preallocate matrix. 
 
