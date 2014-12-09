@@ -23,8 +23,7 @@ lh50 = os.path.join(dir, 'data', 'final-lh50.mat')
 
 data = io.loadmat(lhstore2)   #open data file (.mat)
 
-temperature = data['store2'].T    #pull out tempearture data 
-T = temperature[:210,1,:]       #subset of data to work with - one height, removed unnecessary points
+temperature = data['store2']    #pull out tempearture data 
 
 data = io.loadmat(lh50)
 
@@ -33,12 +32,11 @@ time_averaged_temperature = data['s']      #time averaged temperature data
 
 x_observed = pos_mm[:15,0]           #x (crosswind) axis, observed data
 y_observed = np.unique(pos_mm[:,1])
-y_observed[13] = y_observed[1]      #last row repeats
+y_observed = y_observed[1:13];    #remove unwanted data points, grid only
 
 #IN PROGRESS: grid shape to data (x, y,temperature), to calculate std at each location
-
-grid_x,grid_y= np.meshgrid(x_observed,y_observed)
-T_reshaped =  np.reshape(T,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
+#grid_x,grid_y= np.meshgrid(x_observed,y_observed)
+#T_reshaped =    #reshape T for easier expansion of interpolation into 1+ dimensions
 
 T_observed = np.zeros([9,15])        #preallocate matrix. 
 
@@ -55,12 +53,12 @@ T_observed_mean = np.mean(T_observed, 0) - np.min(np.mean(T_observed, 0))     #s
 #h2 = np.float(np.sum(h,0))  
 #dist = h/h2   #convert histogram to probability
 
-def gaus(x, A, mu, sigma):
+def gaus(x, *p):
     """"gaussian function, for fitting to distribution
     """
-    #A,mu,sigma = p
-    return A * np.exp(-(x-mu) ** 2 / (2. * sigma ** 2))
-
+    print p, "hi"
+    A, mu, sigma = p
+    return A * np.exp(-(x - mu) ** 2 / (2. * sigma ** 2))
     
 def gaus2(x, p1, p2):
 #    A1, mu1, sigma1 = p1
@@ -69,16 +67,19 @@ def gaus2(x, p1, p2):
 
     
 #fit gaussian to distribution
-p0 = [1, 90, 15]   #start guess for fitting
-coeff1, cov = curve_fit(gaus, x_observed, T_observed_mean, p0=p0) #inputs can be: gaus,centers, dist,coeff_guess, if using temperature distribution data
-hist_fit = gaus(x_observed,*coeff1)
+coeff_guess = [1, 90, 15]   #start guess for fitting
+coeff1, cov = curve_fit(gaus, x_observed, T_observed_mean, p0= coeff_guess) #inputs can be: gaus, centers, dist, coeff_guess, if using temperature distribution data
+
+print "BAM"
+hist_fit = gaus(x_observed, coeff1)
+
 
 T_observed_adjusted = T_observed_mean - hist_fit    #subtract out first gaussian, to fit second (if necessary)
 
 #fit second gaussian, if necessary 
-p0 = [0.12, 40, 5]
-coeff2, cov2 = curve_fit(gaus,x_observed, np.abs(T_observed_adjusted), p0= p0)   #not sure how I feel about abs val..
-hist_fit2 = gaus(x_observed,*coeff2)
+coeff_guess = [0.12, 40, 5]
+coeff2, cov2 = curve_fit(gaus, x_observed, np.abs(T_observed_adjusted), p0 = coeff_guess)   #not sure how I feel about abs val..
+hist_fit2 = gaus(x_observed, coeff2)
 
 #create final coefficients and fits
 coeff = np.concatenate((coeff1, coeff2), axis=0)
