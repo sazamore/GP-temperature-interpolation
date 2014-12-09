@@ -21,7 +21,7 @@ data = io.loadmat('C:\Users\Sharri\Dropbox\Le grand dossier du Sharri\Data\Tempe
 temperature = data['store2'].T    #pull out tempearture data 
 T = temperature[:210,1,:]       #subset of data to work with - one height, removed unnecessary points
 
-data = io.loadmat('C:\Users\Sharri\Dropbox\Le grand dossier du Sharri\Data\Temperature Data\final-lh50.mat')
+data = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/final-lh50.mat')
 
 pos_mm = data['p_mm']   #pull out positional data
 time_averaged_temperature = data['s']      #time averaged temperature data
@@ -50,10 +50,10 @@ T_observed_mean = np.mean(T_observed, 0) - np.min(np.mean(T_observed,0))     #su
 #h2 = np.float(np.sum(h,0))  
 #dist = h/h2   #convert histogram to probability
 
-def gaus(x, *p):
+def gaus(x, A, mu, sigma):
     """"gaussian function, for fitting to distribution
     """
-    A,mu,sigma = p
+    #A,mu,sigma = p
     return A * np.exp(-(x-mu) ** 2 / (2. * sigma ** 2))
     
 def gaus2(x,p1,p2):
@@ -61,15 +61,15 @@ def gaus2(x,p1,p2):
 
     
 #fit gaussian to distribution
-coeff_guess = [1,90,15]   #start guess for fitting
-coeff, cov = curve_fit(gaus, x_observed, T_observed_mean, p0= coeff_guess) #inputs can be: gaus,centers, dist,coeff_guess, if using temperature distribution data
+p0 = [1,90,15]   #start guess for fitting
+coeff, cov = curve_fit(gaus, x_observed, T_observed_mean, p0=p0) #inputs can be: gaus,centers, dist,coeff_guess, if using temperature distribution data
 hist_fit = gaus(x_observed,*coeff)
 
 T_observed_adjusted = T_observed_mean - hist_fit    #subtract out first gaussian, to fit second (if necessary)
 
 #fit second gaussian, if necessary 
-coeff_guess = [0.12,40,5]
-coeff2, cov2 = curve_fit(gaus,x_observed, np.abs(T_observed_adjusted), p0= coeff_guess)   #not sure how I feel about abs val..
+p0 = [0.12,40,5]
+coeff2, cov2 = curve_fit(gaus,x_observed, np.abs(T_observed_adjusted), p0= p0)   #not sure how I feel about abs val..
 hist_fit2 = gaus(x_observed,*coeff2)
 
 #create final coefficients and fits
