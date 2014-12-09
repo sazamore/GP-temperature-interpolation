@@ -18,8 +18,8 @@ import scipy.io as io
 
 import os
 mydir = os.path.dirname(__file__)
-lhstore2 = os.path.join(dir, "data", 'lhstore2.mat')
-lh50 = os.path.join(dir, 'data', 'final-lh50.mat')
+lhstore2 = os.path.join(mydir, "data", 'lhstore2.mat')
+lh50 = os.path.join(mydir, 'data', 'final-lh50.mat')
 
 data = io.loadmat(lhstore2)   #open data file (.mat)
 
@@ -62,10 +62,10 @@ def gaus(x, A, mu, sigma):
     return A * np.exp(-(x-mu) ** 2 / (2. * sigma ** 2))
 
     
-def gaus2(x, p1, p2):
+def gaus2(x, A1, mu1, sigma1, A2, mu2, sigma2):
 #    A1, mu1, sigma1 = p1
 #    A2, mu2, sigma2 = p2
-    return gaus(x, p1) + gaus(x, p2)
+    return gaus(x, A1, mu1, sigma1) + gaus(x, A2, mu2, sigma2)
 
     
 #fit gaussian to distribution
@@ -108,6 +108,6 @@ gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',
 gp.fit(x_observed.T, T_fit.T)
 
 #y_expected_fit = gaus(x_observed,*coeff)     #single gaussian expected y values
-T_expected_fit = gaus2(x_observed, coeff1, coeff2) #coeff)     #expected y values with double-gaussian-fit
+T_expected_fit = gaus2(x_observed, *coeff) #coeff)     #expected y values with double-gaussian-fit
 T_prediction, y_prediction_MSE = gp.predict(x_predicted.T, eval_MSE = True)   #produce predicted y values
 sigma = np.sqrt(y_prediction_MSE)   #get SD of fit at each x_predicted location (for confidence interval)
