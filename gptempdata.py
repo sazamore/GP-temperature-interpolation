@@ -20,16 +20,16 @@ import os
 mydir = os.path.dirname(__file__)
 
 #pull out tempearture data 
-lhstore2 = os.path.join(mydir, "data", 'lhstore2.mat')
-data = io.loadmat(lhstore2)
-temperature = data['store2'].T    
+lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
+lhstore2_data = io.loadmat(lhstore2_file)
+temperature = lhstore2_data['store2'].T    
 T = temperature[:210,1,:]       #subset of data to work with - one height, removed unnecessary points
 
 #pull out positional data
-lh50 = os.path.join(mydir, 'data', 'final-lh50.mat')
-data = io.loadmat(lh50) #TODO: make data a unique name
-pos_mm = data['p_mm']
-time_averaged_temperature = data['s']      #time averaged temperature data
+lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
+lh50_data = io.loadmat(lh50_file)
+pos_mm = lh50_data['p_mm']
+time_averaged_temperature = lh50_data['s']      #time averaged temperature data
 
 
 x_observed = pos_mm[:15,0]           #x (crosswind) axis, observed data
@@ -85,7 +85,7 @@ coeff = np.concatenate((coeff1, coeff2), axis = 0)
 T_fit = hist_fit + hist_fit2
 
 #plot to check fit
-plt.plot(x_observed,T_observed_mean,'ro',label='Test data'), plt.plot(x_observed,hist_fit,label='Fitted data')
+#plt.plot(x_observed,T_observed_mean,'ro',label='Test data'), plt.plot(x_observed,hist_fit,label='Fitted data')
 
 #prediction locations
 #x_predicted = np.atleast_2d(np.random.rand(100))*coeff(1)   #random data, around mean
