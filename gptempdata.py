@@ -22,23 +22,30 @@ mydir = os.path.dirname(__file__)
 #pull out tempearture data 
 lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
 lhstore2_data = io.loadmat(lhstore2_file)
-temperature = lhstore2_data['store2'].T    
+temperature = lhstore2_data['store2'].T
+## lhstore2 is lh50's store with two channel error corrected
+### temperature.shape() ==>  (215, 4, 20000)
 T = temperature[:210,1,:]       #subset of data to work with - one height, removed unnecessary points
 
 #pull out positional data
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
 lh50_data = io.loadmat(lh50_file)
-pos_mm = lh50_data['p_mm']
+#==============================================================================
+# lh50_data.keys() ==> ['p_in', 'p_mm', 'p', 's', 'store', '__header__', '__globals__',  '__version__']
+# 'p_in' => pos in inches
+# 'p_mm' = > positions in mm
+# 'p' => pos in grid
+# 's' => time averaged temperature
+# 'store' => raw temp data
+#==============================================================================
 time_averaged_temperature = lh50_data['s']      #time averaged temperature data
-
-
-x_observed = pos_mm[:15,0]           #x (crosswind) axis, observed data
-y_observed = np.unique(pos_mm[:,1])
-y_observed[13] = y_observed[1]      #last row repeats
+x_observed = lh50_data['p_mm'][:15,0]          #x (crosswind) axis, observed data
+y_observed = np.unique(lh50_data['p_mm'][:,1])
+y_observed[13] = y_observed[1]      #last row repeats 
 
 #IN PROGRESS: grid shape to data (x, y,temperature), to calculate std at each location
 
-grid_x,grid_y= np.meshgrid(x_observed,y_observed)
+grid_x, grid_y= np.meshgrid(x_observed, y_observed)
 T_reshaped =  np.reshape(T,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
 
 T_observed = np.zeros([9,15])        #preallocate matrix. 
@@ -63,8 +70,6 @@ def gaus(x, A, mu, sigma):
 
     
 def gaus2(x, A1, mu1, sigma1, A2, mu2, sigma2):
-#    A1, mu1, sigma1 = p1
-#    A2, mu2, sigma2 = p2
     return gaus(x, A1, mu1, sigma1) + gaus(x, A2, mu2, sigma2)
 
     
