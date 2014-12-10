@@ -27,6 +27,8 @@ lhstore2_data = io.loadmat(lhstore2_file)
 temperatures_raw = lhstore2_data['store2'].T
 ## lhstore2 is lh50's store with two channel error corrected
 ### temperatures_raw.shape() ==>  (215, 4, 20000)
+
+#TODO: Allow for selection or incorporation of other heights (2nd dimension of temperatures_raw)
 temperatures_raw = temperatures_raw[:210,1,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
 
 #pull out positional data
@@ -40,21 +42,19 @@ lh50_data = io.loadmat(lh50_file)
 # 's' => time averaged temperature
 # 'store' => raw temp data
 #==============================================================================
-temperatures_time_avg = lh50_data['s']      #time averaged temperature data
-x_observed = lh50_data['p_mm'][:15,0]          #x (crosswind) axis, observed data
-y_observed = np.unique(lh50_data['p_mm'][:,1])
-y_observed[13] = y_observed[1]      #last row repeats 
+#temperatures_time_avg = lh50_data['s']      #time averaged temperature data
+x_raw = lh50_data['p_mm'][:15,0]          #x (crosswind) axis, observed data
+y_raw = np.unique(lh50_data['p_mm'][:,1])
+y_raw[13] = y_raw[1]      #last row repeats 
 
 #IN PROGRESS: grid shape to data (x, y,temperature), to calculate std at each location
 
-grid_x, grid_y= np.meshgrid(x_observed, y_observed)
-temperatures_raw_reshaped =  np.reshape(temperatures_raw,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
-T_observed = np.zeros([9,15])        #preallocate matrix. 
+x_observed, y_observed= np.meshgrid(x_raw, y_raw)
+T_observed =  np.reshape(temperatures_raw,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
 
-for i in range(1,10):
-    T_observed[i-1,:] = temperatures_time_avg[1, i*15 - 15:i*15]   #get corresponding crosswind slice temperatures
-
-T_observed_mean = np.mean(T_observed, 0) - np.min(np.mean(T_observed, 0))     #subtract offset, improves fit
+T_time_avg = np.mean(T_observed,2)
+T_observed_mean = np.mean(T_time_avg, 0) - np.min(np.mean(T_time_avg,0))    #consider rename? y dimension average
+T_sd = np.std(T_observed,2)
 
 #get distribution of temperatures from samples
 #bins = np.linspace(15, 30, 100) #histogram bins
@@ -76,15 +76,16 @@ def gaus2(x, A1, mu1, sigma1, A2, mu2, sigma2):
     
 #fit gaussian to distribution
 p0 = [1, 90, 15]   #start guess for fitting
-coeff1, cov = curve_fit(gaus, x_observed, T_observed_mean, p0 = p0) #inputs can be: gaus,centers, dist,coeff_guess, if using temperature distribution data
-hist_fit = gaus(x_observed, *coeff1)
+coeff1, cov = curve_fit(gaus, x_observed[0,:], T_observed_mean.T, p0 = p0) #inputs can be: gaus,centers, dist,coeff_guess, if using temperature distribution data
+hist_fit = gaus(x_observed[0,:], *coeff1)
 
 T_observed_adjusted = T_observed_mean - hist_fit    #subtract out first gaussian, to fit second (if necessary)
 
 #fit second gaussian, if necessary 
+#TODO: make detector (if statement?) to determine if distribution is a second gaussian. Not sure how to do this.
 p0 = [0.12, 40, 5]
-coeff2, cov2 = curve_fit(gaus,x_observed, np.abs(T_observed_adjusted), p0 = p0)   #not sure how I feel about abs val..
-hist_fit2 = gaus(x_observed, *coeff2)
+coeff2, cov2 = curve_fit(gaus,x_observed[0,:], np.abs(T_observed_adjusted), p0 = p0)   #not sure how I feel about abs val..
+hist_fit2 = gaus(x_observed[0,:], *coeff2)
 
 #create final coefficients and fits
 coeff = np.concatenate((coeff1, coeff2), axis = 0)
@@ -93,12 +94,14 @@ T_fit = hist_fit + hist_fit2
 #plot to check fit
 #plt.plot(x_observed,T_observed_mean,'ro',label='Test data'), plt.plot(x_observed,hist_fit,label='Fitted data')
 
+#TODO: move everything below this to a function and/or separate script
+
 #prediction locations
 #x_predicted = np.atleast_2d(np.random.rand(100))*coeff(1)   #random data, around mean
 x_predicted = np.atleast_2d(np.linspace(0, 254, 50))       #2 mm prediction sites
-x_observed = np.atleast_2d(x_observed)    #make 2d for gaussian process fit. TODO: figure out what atleast_2d does
+x_observed = np.atleast_2d(x_observed[0,:])    #make 2d for gaussian process fit. TODO: figure out what atleast_2d does
 
-T_observed = np.atleast_2d(T_observed)    #make 2d for gaussian process fit
+T_observed_mean = np.atleast_2d(T_observed_mean)    #make 2d for gaussian process fit
 T_observed_adjusted = np.atleast_2d(T_observed_adjusted)
 T_fit = np.atleast_2d(T_fit)
    
