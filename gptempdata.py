@@ -5,6 +5,8 @@ gaussian process package, fits a gaussian to the crosswind (1d) temperature
 measurements and interpolates temparture values (relative, not absolute) at a
 2 mm interval.
 
+TODO: make gaussian process it's own script
+
 Created on Mon Dec 01 11:51:44 2014
 
 @authors: Sharri and Richard
@@ -22,10 +24,10 @@ mydir = os.path.dirname(__file__)
 #pull out tempearture data 
 lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
 lhstore2_data = io.loadmat(lhstore2_file)
-temperature = lhstore2_data['store2'].T
+temperatures_raw = lhstore2_data['store2'].T
 ## lhstore2 is lh50's store with two channel error corrected
-### temperature.shape() ==>  (215, 4, 20000)
-T = temperature[:210,1,:]       #subset of data to work with - one height, removed unnecessary points
+### temperatures_raw.shape() ==>  (215, 4, 20000)
+temperatures_raw = temperatures_raw[:210,1,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
 
 #pull out positional data
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
@@ -38,7 +40,7 @@ lh50_data = io.loadmat(lh50_file)
 # 's' => time averaged temperature
 # 'store' => raw temp data
 #==============================================================================
-time_averaged_temperature = lh50_data['s']      #time averaged temperature data
+temperatures_time_avg = lh50_data['s']      #time averaged temperature data
 x_observed = lh50_data['p_mm'][:15,0]          #x (crosswind) axis, observed data
 y_observed = np.unique(lh50_data['p_mm'][:,1])
 y_observed[13] = y_observed[1]      #last row repeats 
@@ -46,12 +48,11 @@ y_observed[13] = y_observed[1]      #last row repeats
 #IN PROGRESS: grid shape to data (x, y,temperature), to calculate std at each location
 
 grid_x, grid_y= np.meshgrid(x_observed, y_observed)
-T_reshaped =  np.reshape(T,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
-
+temperatures_raw_reshaped =  np.reshape(temperatures_raw,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
 T_observed = np.zeros([9,15])        #preallocate matrix. 
 
 for i in range(1,10):
-    T_observed[i-1,:] = time_averaged_temperature[1, i*15 - 15:i*15]   #get corresponding crosswind slice temperatures
+    T_observed[i-1,:] = temperatures_time_avg[1, i*15 - 15:i*15]   #get corresponding crosswind slice temperatures
 
 T_observed_mean = np.mean(T_observed, 0) - np.min(np.mean(T_observed, 0))     #subtract offset, improves fit
 
