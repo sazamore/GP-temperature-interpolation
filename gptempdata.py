@@ -78,25 +78,21 @@ def gaus2(x, A1, mu1, sigma1, A2, mu2, sigma2):
 #fit gaussian to distribution
 p0 = [1, 90, 15]   #start guess for fitting
 coeff1, cov = curve_fit(gaus, x_observed[0,:], T_observed_mean.T, p0 = p0) #inputs can be: gaus,centers, dist,coeff_guess, if using temperature distribution data
-hist_fit = gaus(x_observed[0,:], *coeff1)
+T_fit1 = gaus(x_observed[0,:], *coeff1)
 
 
-temp_observed_adjusted = temp_observed_mean - histemp_fit    #subtract out first gaussian, to fit second (if necessary)
+T_observed_adjusted = T_observed_mean - T_fit1    #subtract out first gaussian, to fit second (if necessary)
 
 #fit second gaussian, if necessary 
 #TODO: make detector (if statement?) to determine if distribution is a second gaussian. Not sure how to do this.
 p0 = [0.12, 40, 5]
-<<<<<<< HEAD
 coeff2, cov2 = curve_fit(gaus,x_observed[0,:], np.abs(T_observed_adjusted), p0 = p0)   #not sure how I feel about abs val..
-hist_fit2 = gaus(x_observed[0,:], *coeff2)
-=======
-coeff2, cov2 = curve_fit(gaus,x_observed, np.abs(temp_observed_adjusted), p0 = p0)   #not sure how I feel about abs val..
-histemp_fit2 = gaus(x_observed, *coeff2)
->>>>>>> origin/master
+T_fit2 = gaus(x_observed[0,:], *coeff2)
+
 
 #create final coefficients and fits
 coeff = np.concatenate((coeff1, coeff2), axis = 0)
-temp_fit = histemp_fit + histemp_fit2
+T_fit = T_fit1 + T_fit2
 
 #plot to check fit
 #plt.plot(x_observed,temp_observed_mean,'ro',label='Test data'), plt.plot(x_observed,histemp_fit,label='Fitted data')
@@ -108,15 +104,10 @@ temp_fit = histemp_fit + histemp_fit2
 x_predicted = np.atleast_2d(np.linspace(0, 254, 50))       #2 mm prediction sites
 x_observed = np.atleast_2d(x_observed[0,:])    #make 2d for gaussian process fit. TODO: figure out what atleast_2d does
 
-<<<<<<< HEAD
 T_observed_mean = np.atleast_2d(T_observed_mean)    #make 2d for gaussian process fit
 T_observed_adjusted = np.atleast_2d(T_observed_adjusted)
 T_fit = np.atleast_2d(T_fit)
-=======
-temp_observed = np.atleast_2d(temp_observed)    #make 2d for gaussian process fit
-temp_observed_adjusted = np.atleast_2d(temp_observed_adjusted)
-temp_fit = np.atleast_2d(temp_fit)
->>>>>>> origin/master
+
    
 #TODO: make section into separate function
    
@@ -127,7 +118,7 @@ gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',
                                       thetaU = None)
 #                                      nugget = np.std(temp_observed,1)/temp_observed_mean)
 
-gp.fit(x_observed.T, temp_fit.T)
+gp.fit(x_observed.T, T_fit.T)
 
 #y_expected_fit = gaus(x_observed,*coeff)     #single gaussian expected y values
 T_expected_fit = gaus2(x_observed, *coeff) #coeff)     #expected y values with double-gaussian-fit
