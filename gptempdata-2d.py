@@ -24,12 +24,12 @@ mydir = os.path.dirname(__file__)
 #pull out tempearture data 
 lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
 lhstore2_data = io.loadmat(lhstore2_file)
-temperatures_raw = lhstore2_data['store2'].T
+T_raw = lhstore2_data['store2'].T
 ## lhstore2 is lh50's store with two channel error corrected
 ### temperatures_raw.shape() ==>  (215, 4, 20000)
 
 #TODO: Allow for selection or incorporation of other heights (2nd dimension of temperatures_raw)
-temperatures_raw = temperatures_raw[:210,0,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
+T_raw = T_raw[:210,0,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
 
 #pull out positional data
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
@@ -52,58 +52,49 @@ xy_observed[0,:] = lh50_data['p_mm'][:210,0]          #x (crosswind) axis, obser
 xy_observed[1,:] = lh50_data['p_mm'][:210,1]
 
 #Get temparature data 
-T_time_avg = np.mean(temperatures_raw,1) 
-T_sd = np.std(T_observed,2)
+T_time_avg = np.mean(T_raw,1) 
+T_sd = np.std(T_raw,1)
 
 #fit all of the observed data into one array, for ease of use of fitting function
 observed_data[:2,:] = xy_observed
 observed_data[2,:] = T_time_avg
-
-#get distribution of temperatures from samples
-#bins = np.linspace(15, 30, 100) #histogram bins
-#h,b = np.historgram(temperature_adjusted, bins)
-#centers = (b[:-1]+b[1,:])/2
-#
-#h2 = np.float(np.sum(h,0))  
-#dist = h/h2   #convert histogram to probability
     
-def gaus2d(xy_observed, A, mu_x, sigma_x, mu_y, sigma_y):
-    """2-dimensional gaussian
+def lin_gaus_2d(xy_observed, A1, mu_x1, sigma_x1, mu_y1, sigma_y1, A2, mu_x2, sigma_x2, mu_y2, sigma_y2, m, b):
+    """sum of two 2-dimensional gaussians + y-dimension linear slope
     """
-    return A * np.exp(-((xy_observed[0]-mu_x)**2/(2.*sigma_x**2)+
-    (xy_observed[1]-mu_y)**2/(2.*sigma_y**2)))
-
-def lin_gaus_2d(xy_observed, m, b, A, mu_x, sigma_x, mu_y, sigma_y):
-    """ 2d gaussian + linear slope. should be good approximation for this data set
-    """
-    return (xy_observed[1]*m+b)+A * np.exp(-((xy_observed[0]-mu_x)**2/(2.*sigma_x**2)+
-    (xy_observed[1]-mu_y)**2/(2.*sigma_y**2)))
+    return A1 * np.exp(-((xy_observed[0]-mu_x1)**2/(2.*sigma_x1**2) + 
+    (xy_observed[1]-mu_y1)**2/(2.*sigma_y1**2))) + A2 * np.exp(-((xy_observed[0]-mu_x2)**2/(2.*sigma_x2**2)+
+    (xy_observed[1]-mu_y2)**2/(2.*sigma_y2**2))) + (xy_observed[1]*m + b)
     
-#guess for coefficients
-guess = [1/700, 0,
-      0.13, 90, 15,
-      450, 1]
+#initial paramater values for fit function
+p0 = [1, 69, 1, 500,5,
+         1.5, 100, 1, 500, 5,
+         1/800, 0]
 
-coeff, cov = curve_fit(lin_gaus_2d,observed_data[:2,:],observed_data[3,:],p0=guess)
-T_fit = lin_gaus_2d(xy_observed,*coeff)
+coeff, cov = curve_fit(lin_gaus_2d, xy_observed, observed_data[2,:]-np.mean(observed_data[2,:]), p0 = p0)
+T_fit = lin_gaus_2d(xy_observed, *coeff)
+
+#convert such that this stupid gp can actually understand what's going on (dimension matching)
+T_fit_2d = np.zeros([2,len(T_fit.T)])
+T_fit_2d[0,:] = T_fit
+T_fit_2d[1,:] = T_fit
 
 #plot to check fit
 #plt.plot(x_observed,temp_observed_mean,'ro',label='Test data'), plt.plot(x_observed,histemp_fit,label='Fitted data')
 
-#TODO: fix all below such that it works.
 #TODO: move everything below this to a function and/or separate script
 
-#prediction locations
-#x_predicted = np.atleast_2d(np.random.rand(100))*coeff(1)   #random data, around mean
-x_predicted = np.atleast_2d(np.linspace(0, 254, 50))       #2 mm prediction sites
-y_predicted = np.atleast_2d(np.linspace(0, 850,100))
+#prediction locations, make 
 
+x_predicted = np.atleast_2d(np.linspace(0, 254, 15))       #2 mm prediction sites
+y_predicted = np.atleast_2d(np.linspace(0, 850, 14))
 
-T_observed_mean = np.atleast_2d(T_observed_mean)    #make 2d for gaussian process fit
-T_fit_x = np.atleast_2d(T_fit_x)
-T_fit_y = np.atleast_2d(T_fit_y)
+x1,x2 = np.meshgrid(x_predicted, y_predicted)
+xy_predicted = np.vstack([x1.reshape(x1.size), x2.reshape(x2.size)]).T
 
-#nugget =  (T_sd/T_observed_mean)**2 
+#calculate noise (required)
+nugget =  T_sd/T_time_avg)**2
+nugget = nugget[:181]       #deletes repeated measurment locations
   
 #TODO: make section into separate function
    
@@ -111,12 +102,21 @@ T_fit_y = np.atleast_2d(T_fit_y)
 gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',
                                       theta0 = 1./25, 
                                       thetaL = None,
-                                      thetaU = None)
-                                      #nugget = nugget)
+                                      thetaU = None,
+                                      nugget = nugget)
+#TODO: nugget array size error
+#nugget has to be at least 2d
 
-gp.fit(x_observed.T, T_fit.T)
+
+gp.fit(xy_observed[:181,:], T_time_avg[:181])
+   
+#Target value error will come up with that last repeated row. It can't have 
+#multiple measurements at the same location. Consider deleting that repeated
+#last row of measurements or take a mean or stack the timeseries onto the 
+#first measurement, which will effectivly average the values.
 
 #y_expected_fit = gaus(x_observed,*coeff)     #single gaussian expected y values
-T_expected_fit = lin_gaus_2d(xy_observed, *coeff) #coeff)     #expected y values with double-gaussian-fit
-T_prediction, y_prediction_MSE = gp.predict(x_predicted.T, eval_MSE = True)   #produce predicted y values
+#T_expected_fit = lin_gaus_2d(xy_observed, *coeff) #coeff)     #expected y values with double-gaussian-fit
+T_prediction, y_prediction_MSE = gp.predict(xy_predicted, eval_MSE = True)   #produce predicted y values
 sigma = np.sqrt(y_prediction_MSE)   #get SD of fit at each x_predicted location (for confidence interval)
+
