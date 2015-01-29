@@ -29,7 +29,7 @@ T_raw = lhstore2_data['store2'].T
 ### temperatures_raw.shape() ==>  (215, 4, 20000)
 
 #TODO: Allow for selection or incorporation of other heights (2nd dimension of temperatures_raw)
-T_raw = T_raw[:210,1,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
+T_raw = T_raw[:210,0,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
 
 #pull out positional data
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
@@ -68,6 +68,8 @@ y_predicted = np.atleast_2d(np.linspace(0, 850, 14))
 
 x1,x2 = np.meshgrid(x_predicted, y_predicted)
 xy_predicted = np.vstack([x1.reshape(x1.size), x2.reshape(x2.size)]).T
+
+#xy_predicted = track_1[:,:1]
 
 #calculate noise (required)
 nugget =  (T_sd/T_time_avg)**2
