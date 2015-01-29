@@ -56,8 +56,8 @@ y_observed = y_observed[:,0]
 T_observed =  np.reshape(temperatures_raw,(14,15,20000))  #reshape T for easier expansion of interpolation into 1+ dimensions
 
 T_time_avg = np.mean(T_observed,2)
-T_observed_x = np.mean(T_time_avg, 1) - np.min(np.mean(T_time_avg,1))    
-T_observed_y = np.mean(T_time_avg, 0) - np.min(np.mean(T_time_avg,0))    
+T_observed_y = np.mean(T_time_avg, 1) - np.min(np.mean(T_time_avg,1))    
+T_observed_x = np.mean(T_time_avg, 0) - np.min(np.mean(T_time_avg,0))    
 T_sd = np.std(T_observed,2)
 
 #get distribution of temperatures from samples
@@ -74,40 +74,40 @@ def gaus(x, A, mu, sigma):
     return A * np.exp(-(x - mu) ** 2 / (2. * sigma ** 2))
 
 
-def gaus2(x, A1, mu1, sigma1, A2, mu2, sigma2):
+def sum_gaus(x, A1, mu1, sigma1, A2, mu2, sigma2):
     """Sum of (2) gaussians, to fit crosswind distribution
     """
     return gaus(x, A1, mu1, sigma1) + gaus(x, A2, mu2, sigma2)
-
-def lin(x,m,b):
+    
+def lin_gaus(x,m,b,A,mu,sigma):
     """linear formula to fit upwind distribution
     """
-    return m*x+b
+    return m*x+b + gaus(x,A,mu,sigma)
+
     
 #TODO: add a 2d fit, maybe it can replace all of this--2 2D gaussians and a linear (y) fit
 
 #fit sum of gaussians to distribution
 p0 = [1, 90, 15 ,
-      0.12, 35, 2]
-coeff, cov = curve_fit(gaus2,x_observed,T_observed_x,p0=p0)
-T_fit_x = gaus2(x_observed,*coeff)
+      0.12, 50, 2]
+coeff_x, cov = curve_fit(sum_gaus,x_observed,T_observed_x,p0=p0)
+T_fit_x = sum_gaus(x_observed,*coeff_x)
 
 #y-dimension, linear fit
-p0 = [1/800, 0]
-coeff, cov = curve_fit(lin,y_observed,T_observed_y,p0=p0)
-T_lin = lin(y_observed, *coeff)
-
-#subtract out linear portion
-#TODO: is there a better way to do this? This seems tedious and redundant
-T_mod = T_observed_y - T_lin;
-
-p0 = [1.3, 600,1, .7, 600, 5]
-coeff,cov = curve_fit(gaus2,y_observed,T_mod,p0=p0)
-T_fit_y = gaus2(y_observed, *coeff)
-
+p0 = [1/800, 0, 1.2, 450, 5]
+coeff_y, cov = curve_fit(lin_gaus, y_observed, T_observed_y, p0=p0)
+T_fit_y = lin_gaus(y_observed, *coeff_y)
 
 #plot to check fit
 #plt.plot(x_observed,temp_observed_mean,'ro',label='Test data'), plt.plot(x_observed,histemp_fit,label='Fitted data')
+
+#merge the two dimensions together
+def lin_gaus_2d(x, y, A, mu_x, sigma_x, mu_y, sigma_y, m, b):
+    """2-dimensional gaussian + linear offset in y dimension
+    """
+    return A * np.exp(-((x-mu_x)**2/(2.*sigma_x**2)+(y-mu_y)**2/(2.*sigma_y**2))) + y*m + b
+
+#fit_2d = lin_gaus_2d(x_observed, y_observed, A,)
 
 #TODO: move everything below this to a function and/or separate script
 
@@ -118,7 +118,7 @@ x_observed = np.atleast_2d(x_observed)    #make 2d for gaussian process fit. TOD
 y_predicted = np.atleast_2d(np.linspace(0, 850,100))
 y_observed = np.atleast_2d(y_observed)
 
-T_observed_mean = np.atleast_2d(T_observed_mean)    #make 2d for gaussian process fit
+T_time_avg = np.atleast_2d(T_time_avg)    #make 2d for gaussian process fit
 T_fit_x = np.atleast_2d(T_fit_x)
 T_fit_y = np.atleast_2d(T_fit_y)
 
@@ -136,6 +136,6 @@ gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',
 gp.fit(x_observed.T, T_fit.T)
 
 #y_expected_fit = gaus(x_observed,*coeff)     #single gaussian expected y values
-T_expected_fit = gaus2(x_observed, *coeff) #coeff)     #expected y values with double-gaussian-fit
+T_expected_fit = sum_gaus(x_observed, *coeff) #coeff)     #expected y values with double-gaussian-fit
 T_prediction, y_prediction_MSE = gp.predict(x_predicted.T, eval_MSE = True)   #produce predicted y values
 sigma = np.sqrt(y_prediction_MSE)   #get SD of fit at each x_predicted location (for confidence interval)
