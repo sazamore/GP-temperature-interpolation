@@ -74,10 +74,10 @@ for i in range(1,4):
 
 #look for and remove nans () 
 if np.any(np.isnan(T_time_avg_3d)):
-    f = np.where(np.isnan(T_time_avg_3d))      #find the indices of Nans
-    T_time_avg_3d = np.delete(T_time_avg_3d, f)
-    xyz_observed = np.delete(xyz_observed, f, axis = 1)
-    T_sd = np.delete(T_sd,f)
+    NaN_locations = np.where(np.isnan(T_time_avg_3d))      #find the indices of Nans
+    T_time_avg_3d = np.delete(T_time_avg_3d, NaN_locations)
+    xyz_observed = np.delete(xyz_observed, NaN_locations, axis = 1)
+    T_sd = np.delete(T_sd, NaN_locations)
 
 #fit all of the observed data into one array, for ease of use of fitting function
 observed_data_3d = np.zeros((4,len(xyz_observed.T)), dtype = float)
