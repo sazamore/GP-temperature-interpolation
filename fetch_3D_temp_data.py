@@ -15,12 +15,14 @@ Created on Fri Feb 13 11:19:31 2015
 """
 
 import scipy.io as io
-import os
+import os.path
 
 #==============================================================================
 #  File I/O
 #==============================================================================
+
 mydir = os.path.dirname(__file__)
+print """Current directory is: \n""", mydir, "\n \n"
 
 #load tempearture data file
 lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
@@ -28,9 +30,21 @@ lhstore2_data = io.loadmat(lhstore2_file)
 #pull out temp data 
 T_raw = lhstore2_data['store2'].T
 
+Temp_data_file = None #clear any old versions of this from past runs
+print """Enter temperature data file name. If none entered, default is %s """ % lhstore2_file, "\n \n"
+while Temp_data_file in locals() == False:
+    Temp_data_file = raw_input("Input temperature data file: ")
+    if Temp_data_file == "": #defaults to lhstore2.mat
+        print "No input, using lhstore2.mat"
+        Temp_data_file = lhstore2_file
+    Temp_data = io.loadmat(Temp_data_file)
+        
+    
+
+
 #load z file, then pull out elevation (z) data
-z = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/z-positions.mat')
-zpos = z['y'][0]        
+#z = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/z-positions.mat')
+#zpos = z['y'][0]        
 
 #load positional data file
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
