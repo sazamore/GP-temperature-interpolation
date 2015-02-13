@@ -26,7 +26,8 @@ lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
 lhstore2_data = io.loadmat(lhstore2_file)
 T_raw = lhstore2_data['store2'].T
 
-z = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/z-positions.mat')
+z_file = os.path.join(mydir, "data", 'z-positions.mat')
+z = io.loadmat(z_file)
 zpos = z['y'][0]        #pull out elevation (z) data
 
 #pull out x,y positional data
@@ -53,7 +54,7 @@ observed_data = np.zeros((3,lim), dtype = float)
 
 #temperatures_time_avg = lh50_data['s']      #time averaged temperature data
 xy_observed[0,:] = lh50_data['p_mm'][:lim,0]          #x (crosswind) axis, observed data
-xy_observed[1,:] = lh50_data['p_mm'][:lim,1]
+xy_observed[1,:] = lh50_data['p_mm'][:lim,1] #Richard: is this the y axis?
 
 #for 3d interpolation:
 xyz_observed = np.zeros((3,len(xy_observed.T)),dtype = float)       #observed locations
@@ -73,7 +74,7 @@ for i in range(1,4):
 
 #look for and remove nans () 
 if np.any(np.isnan(T_time_avg_3d)):
-    f = find(np.isnan(T_time_avg_3d))      #this may not work 
+    f = np.where(np.isnan(T_time_avg_3d))      #find the indices of Nans
     T_time_avg_3d = np.delete(T_time_avg_3d, f)
     xyz_observed = np.delete(xyz_observed, f, axis = 1)
     T_sd = np.delete(T_sd,f)
