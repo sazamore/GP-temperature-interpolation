@@ -28,10 +28,11 @@ print """Current directory is: \n""", mydir, "\n \n"
 # Loading temp data
 #==============================================================================
 print "Loading temperature data"
-print """Enter temperature data file name. If none entered, default is %s """ % lhstore2_file, "\n \n"
+print "--------------------------- \n"
+print """Enter temperature data file name. If none entered, default is %s """ % "lhstore2.mat  \n"
 Temp_data_file = raw_input("Input temperature data file dir: ")
 if Temp_data_file == '':
-    print "No input, using lhstore2.mat"
+    print "No input, using lhstore2.mat \n"
     Temp_data_file = os.path.join(mydir, "data", 'lhstore2.mat')
 Temp_data = io.loadmat(Temp_data_file)
 
@@ -40,11 +41,18 @@ Temp_data = io.loadmat(Temp_data_file)
 T_raw = Temp_data['store2'].T
     
 #==============================================================================
-# Loading z file, then pull out elevation data (z)
+# Loading z file
 #==============================================================================
+print "Loading elevation data"
+print "--------------------------- \n"
+print """Enter eleation data file name. If none entered, default is %s """ % "z-positions.mat  \n"
+z_data_file = raw_input("Input elevation data file dir: ")
+if z_data_file == '':
+    print "No input, using z-positions.mat \n"
+    z_data_file = os.path.join(mydir, "data", 'z-positions.mat')
+z = io.loadmat(z_data_file)
 
-z_file = os.path.join(mydir, "data", 'z-positions.mat')
-z = io.loadmat(z_file)
+#then pull out elevation data (z)
 zpos = z['y'][0]        
 
 #load positional data file
