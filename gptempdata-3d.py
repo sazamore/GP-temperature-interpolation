@@ -26,7 +26,8 @@ lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
 lhstore2_data = io.loadmat(lhstore2_file)
 T_raw = lhstore2_data['store2'].T
 
-z = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/z-positions.mat')
+z_file = os.path.join(mydir, "data", 'z-positions.mat')
+z = io.loadmat(z_file)
 zpos = z['y'][0]        #pull out elevation (z) data
 
 #pull out x,y positional data
