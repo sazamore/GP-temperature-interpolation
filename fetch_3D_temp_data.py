@@ -10,6 +10,9 @@ temperature data and the positional data as variables (without conditional names
 Maybe this output can be a class? I'm not sure if that's useful here. Anyway, that output should get entered into the second script. 
 
 
+TODO:
+(maybe) save data to txt files so we don't have to re-run this code every time?
+
 Created on Fri Feb 13 11:19:31 2015
 @author: Richard Decal, decal@uw.edu
 """
@@ -55,10 +58,18 @@ z = io.loadmat(z_data_file)
 #then pull out elevation data (z)
 zpos = z['y'][0]        
 
-#load positional data file
-lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
-#pull out x,y positional data
-lh50_data = io.loadmat(lh50_file)
+
+#==============================================================================
+# Loading positional data
+#==============================================================================
+print "Loading positional data"
+print "--------------------------- \n"
+print """Enter positional data file name. If none entered, default is %s """ % "final-lh50.mat  \n"
+pos_data_file = raw_input("Input positional data file dir: ")
+if pos_data_file == '':
+    print "No input, using final-lh50.mat \n"
+    pos_data_file = os.path.join(mydir, 'data', 'final-lh50.mat')
+pos_data = io.loadmat(pos_data_file) #x,y positional data
 
 #==============================================================================
 # lh50_data.keys() ==> ['p_in', 'p_mm', 'p', 's', 'store', '__header__', '__globals__',  '__version__']
