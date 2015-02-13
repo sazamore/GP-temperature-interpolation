@@ -5,8 +5,6 @@ gaussian process package, fits a gaussian to the crosswind (1d) temperature
 measurements and interpolates temparture values (relative, not absolute) at a
 2 mm interval.
 
-TODO: make gaussian process it's own script
-
 Created on Mon Dec 01 11:51:44 2014
 
 @authors: Sharri and Richard
@@ -16,9 +14,11 @@ from scipy.optimize import curve_fit
 from sklearn import gaussian_process
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.io as io
 
+#SECTION 1 (not sure if this should include these imports)
+import scipy.io as io
 import os
+
 mydir = os.path.dirname(__file__)
 
 #pull out tempearture data 
@@ -27,27 +27,22 @@ lhstore2_data = io.loadmat(lhstore2_file)
 T_raw = lhstore2_data['store2'].T
 
 z = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/z-positions.mat')
-
-## lhstore2 is lh50's store with two channel error corrected
-### temperatures_raw.shape() ==>  (215, 4, 20000)
-
-#TODO: Allow for selection or incorporation of other heights (2nd dimension of temperatures_raw)
-#T_raw = T_raw[:210,3,:]       #subset of data to work with - one height, removed unnecessary points at end of wind tunnel
 zpos = z['y'][0]        #pull out elevation (z) data
 
-#pull out positional data
+#pull out x,y positional data
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
 lh50_data = io.loadmat(lh50_file)
+
 #==============================================================================
 # lh50_data.keys() ==> ['p_in', 'p_mm', 'p', 's', 'store', '__header__', '__globals__',  '__version__']
-# 'p_in' => pos in inches
-# 'p_mm' = > positions in mm
-# 'p' => pos in grid
+# 'p_in' => x,y positions in inches
+# 'p_mm' = > x,y positions in mm
+# 'p' => x,y positions in grid
 # 's' => time averaged temperature
 # 'store' => raw temp data
+# 'z' => elevation positions
 #==============================================================================
-
-#TODO: Make this whole section not stupid. 
+##SECTION 2
 
 #TODO: average these repeated points, instead of deleting them with lim
 lim = 199      #limit of points used (to remove repeat positions or unwanted positions)
@@ -92,12 +87,12 @@ observed_data_3d[3,:] = T_time_avg_3d.T
 
 #prediction locations, make 
 
-x_predicted = np.atleast_2d(np.linspace(0, 254, 25))       #2 mm prediction sites
-y_predicted = np.atleast_2d(np.linspace(100, 850, 15))
-z_predicted = np.atleast_2d(np.linspace(80, 280, 20))
+x_predict = np.atleast_2d(np.linspace(0, 254, 25))       #2 mm prediction sites
+y_predict = np.atleast_2d(np.linspace(100, 850, 15))
+z_predict = np.atleast_2d(np.linspace(80, 280, 20))
 
-x1,x2,x3 = np.meshgrid(x_predicted, y_predicted, z_predicted)
-xyz_predicted = np.vstack([x1.reshape(x1.size), x2.reshape(x2.size), x3.reshape(x3.size)]).T
+x1,x2,x3 = np.meshgrid(x_predict, y_predict, z_predict)
+xyz_predict = np.vstack([x1.reshape(x1.size), x2.reshape(x2.size), x3.reshape(x3.size)]).T
 
 #calculate noise (required)
 nugget =  (T_sd/T_time_avg_3d)**2
@@ -115,13 +110,12 @@ gp = gaussian_process.GaussianProcess(corr = 'absolute_exponential',
 #when height = 0, thetaL = 10e-2,thetaU = .3
 
 gp.fit(xyz_observed.T, T_time_avg_3d)
-#gp.fit(xy_observed.T[:lim,:], T_time_avg[:lim])    #2d
  
 #Target value error will come up with that last repeated row. It can't have 
 #multiple measurements at the same location. Consider deleting that repeated
 #last row of measurements or take a mean or stack the timeseries onto the 
 #first measurement, which will effectivly average the values.
 
-T_prediction, y_prediction_MSE = gp.predict(xyz_predicted, eval_MSE = True)   #produce predicted y values
+T_prediction, y_prediction_MSE = gp.predict(xyz_predict, eval_MSE = True)   #produce predicted y values
 sigma = np.sqrt(y_prediction_MSE)   #get SD of fit at each x_predicted location (for confidence interval)
 
