@@ -17,18 +17,24 @@ Created on Fri Feb 13 11:19:31 2015
 import scipy.io as io
 import os
 
+#==============================================================================
+#  File I/O
+#==============================================================================
 mydir = os.path.dirname(__file__)
 
-#pull out tempearture data 
+#load tempearture data file
 lhstore2_file = os.path.join(mydir, "data", 'lhstore2.mat')
 lhstore2_data = io.loadmat(lhstore2_file)
+#pull out temp data 
 T_raw = lhstore2_data['store2'].T
 
+#load z file, then pull out elevation (z) data
 z = io.loadmat('C:/Users/Sharri/Dropbox/Le grand dossier du Sharri/Data/Temperature Data/z-positions.mat')
-zpos = z['y'][0]        #pull out elevation (z) data
+zpos = z['y'][0]        
 
-#pull out x,y positional data
+#load positional data file
 lh50_file = os.path.join(mydir, 'data', 'final-lh50.mat')
+#pull out x,y positional data
 lh50_data = io.loadmat(lh50_file)
 
 #==============================================================================
@@ -40,3 +46,4 @@ lh50_data = io.loadmat(lh50_file)
 # 'store' => raw temp data
 # 'z' => elevation positions
 #==============================================================================
+
