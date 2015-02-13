@@ -83,6 +83,7 @@ observed_data_3d = np.zeros((4,len(xyz_observed.T)), dtype = float)
 observed_data_3d[:3,:] = xyz_observed
 observed_data_3d[3,:] = T_time_avg_3d.T
 
+#SECTION 3
 #TODO: move everything below this to a function and/or separate script
 
 #prediction locations, make 
